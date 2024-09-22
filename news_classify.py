@@ -45,6 +45,7 @@ def fetch_and_classify_news(topics, days=1):
 
         for entry in feed.entries:
             published_date = datetime.strptime(entry.published, "%a, %d %b %Y %H:%M:%S %Z")
+            # Check if the news is within the range of 'days' back from today
             if published_date >= target_date:
                 text_for_classification = (entry.title or "") + " " + (entry.summary or "")
                 text_for_classification = preprocess_text(text_for_classification)
@@ -73,6 +74,7 @@ topics = st.multiselect(
 
 # Input for how many days back to fetch news
 days = st.number_input("Days Back:", min_value=1, value=1)
+
 # Add Fetch News button with improved style
 fetch_button = st.button("Fetch News", key='fetch_button')
 
