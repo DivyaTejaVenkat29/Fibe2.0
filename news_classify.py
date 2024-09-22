@@ -27,7 +27,6 @@ def preprocess_text(text):
     text = ' '.join([stemmer.stem(word) for word in text.split() if word not in stop_words])  # Stemming and stopword removal
     return text
 
-# Load model
 def fetch_and_classify_news(topics, days=1):
     model = joblib.load('best_news_classifier_model.pkl')
     target_date = datetime.now() - timedelta(days=int(days))
@@ -43,8 +42,11 @@ def fetch_and_classify_news(topics, days=1):
             print(f"No entries found in RSS feed for topic '{topic}'.")
             continue
 
+        print(f"Total articles fetched for {topic}: {len(feed.entries)}")
         for entry in feed.entries:
             published_date = datetime.strptime(entry.published, "%a, %d %b %Y %H:%M:%S %Z")
+            print(f"Article published date: {published_date}")  # Debugging line
+
             # Check if the news is within the range of 'days' back from today
             if published_date >= target_date:
                 text_for_classification = (entry.title or "") + " " + (entry.summary or "")
@@ -58,9 +60,10 @@ def fetch_and_classify_news(topics, days=1):
                         'published': published_date.strftime("%Y-%m-%d %H:%M:%S"),
                         'link': entry.link
                     })
+            else:
+                print(f"Skipping article. Published on {published_date}, older than target date: {target_date}")
 
     return categorized_news
-
 # Streamlit app
 st.markdown("<h1 style='text-align: center; color: #4CAF50;'>News Classification Dashboard</h1>", unsafe_allow_html=True)
 
