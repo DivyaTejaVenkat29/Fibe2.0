@@ -72,8 +72,7 @@ topics = st.multiselect(
 )
 
 # Input for how many days back to fetch news
-days = st.slider("Select the number of days back:", min_value=1, max_value=10000, value=1)
-
+days = st.number_input("Days Back:", min_value=1, value=1)
 # Add Fetch News button with improved style
 fetch_button = st.button("Fetch News", key='fetch_button')
 
