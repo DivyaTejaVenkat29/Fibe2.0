@@ -17,7 +17,7 @@ from collections import defaultdict
 import streamlit as st
 
 # Download stopwords if not already downloaded
-nltk.download('stopwords')
+#nltk.download('stopwords')
 
 # Preprocessing function to clean and normalize text data
 def preprocess_text(text):
@@ -152,9 +152,8 @@ if st.button("Fetch News"):
                 if category in news:
                     st.subheader(f"Category: {category.upper()}")
                     for article in news[category]:
-                        st.write(f"**Title:** {article['title']}")
+                        st.write(f"**Title:** {article['title']} [Read more]({article['link']})")
                         st.write(f"**Published:** {article['published']}")
-                        st.write(f"[Read more]({article['link']})")
                     st.markdown("---")
                 else:
                     st.info(f"No news available for the {category} category.")
