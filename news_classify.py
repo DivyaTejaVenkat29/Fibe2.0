@@ -16,9 +16,6 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import streamlit as st
 
-# Download stopwords if not already downloaded
-#nltk.download('stopwords')
-
 # Preprocessing function to clean and normalize text data
 def preprocess_text(text):
     text = text.lower()  # Lowercase
@@ -30,70 +27,7 @@ def preprocess_text(text):
     text = ' '.join([stemmer.stem(word) for word in text.split() if word not in stop_words])  # Stemming and stopword removal
     return text
 
-# Function to load dataset from an Excel file
-def load_kaggle_dataset(file_path):
-    df = pd.read_excel(file_path)
-    return df
-
-# Prepare data for training
-def prepare_data(df):
-    news_articles = []
-    for index, row in df.iterrows():
-        title = str(row['title']) if pd.notna(row['title']) else ""
-        content = str(row['content']) if pd.notna(row['content']) else ""
-        category = row['category'] if pd.notna(row['category']) else "Unknown"
-        news_articles.append((title, content, category))
-    X = [preprocess_text(article[0] + " " + article[1]) for article in news_articles]
-    y = [article[2] for article in news_articles]
-    return X, y
-
-# Train and evaluate the model
-def train_model(X, y):
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
-
-    pipelines = {
-        'SVM': Pipeline([
-            ('tfidf', TfidfVectorizer(stop_words='english')),
-            ('clf', LinearSVC())
-        ]),
-        'RandomForest': Pipeline([
-            ('tfidf', TfidfVectorizer(stop_words='english')),
-            ('clf', RandomForestClassifier())
-        ])
-    }
-
-    param_grids = {
-        'SVM': {
-            'clf__C': [0.1, 1, 10, 100],
-            'clf__loss': ['hinge', 'squared_hinge'],
-            'clf__max_iter': [1000, 5000, 10000]
-        },
-        'RandomForest': {
-            'clf__n_estimators': [100, 200, 500],
-            'clf__max_depth': [10, 20, 50]
-        }
-    }
-
-    best_model = None
-    best_score = 0
-    for model_name, pipeline in pipelines.items():
-        grid_search = GridSearchCV(pipeline, param_grids[model_name], cv=5, n_jobs=-1, scoring='accuracy')
-        grid_search.fit(X_train, y_train)
-        score = grid_search.best_score_
-        print(f"{model_name} Best Score: {score * 100:.2f}%")
-
-        if score > best_score:
-            best_score = score
-            best_model = grid_search.best_estimator_
-
-    joblib.dump(best_model, 'best_news_classifier_model.pkl')
-    loaded_model = joblib.load('best_news_classifier_model.pkl')
-
-    y_pred = loaded_model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    print(f"Model Accuracy: {accuracy * 100:.2f}%")
-
-    return best_model
+# Load model
 def fetch_and_classify_news(topics, days=1):
     model = joblib.load('best_news_classifier_model.pkl')
     target_date = datetime.now() - timedelta(days=int(days))
@@ -116,7 +50,6 @@ def fetch_and_classify_news(topics, days=1):
                 text_for_classification = preprocess_text(text_for_classification)
                 predicted_category = model.predict([text_for_classification])[0]
                 
-                # Only add the article if the predicted category is in the selected topics
                 if predicted_category in topics:
                     categorized_news[predicted_category].append({
                         'title': entry.title,
@@ -128,18 +61,24 @@ def fetch_and_classify_news(topics, days=1):
     return categorized_news
 
 # Streamlit app
-st.title("News Classification Dashboard")
+st.markdown("<h1 style='text-align: center; color: #4CAF50;'>News Classification Dashboard</h1>", unsafe_allow_html=True)
 
 # User input for topics
 topics = st.multiselect(
     "Select Topics:",
     options=["business", "health", "entertainment", "tech", "politics", "sports"],
-    default=["business"]
+    default=["business"],
+    help="Choose the topics you'd like to fetch news for"
 )
 
-days = st.number_input("Days Back:", min_value=1, value=1)
+# Input for how many days back to fetch news
+days = st.slider("Select the number of days back:", min_value=1, max_value=7, value=1)
 
-if st.button("Fetch News"):
+# Add Fetch News button with improved style
+fetch_button = st.button("Fetch News", key='fetch_button')
+
+# Button styling
+if fetch_button:
     if not topics:
         st.warning("Please select at least one topic.")
     else:
@@ -147,13 +86,20 @@ if st.button("Fetch News"):
         if not news:
             st.info("No news available for the selected topics.")
         else:
-            # Only display the news for selected categories
+            # Display the news for each category
             for category in topics:
                 if category in news:
-                    st.subheader(f"Category: {category.upper()}")
+                    st.markdown(f"<h2 style='color: #1E90FF;'>{category.upper()} News</h2>", unsafe_allow_html=True)
                     for article in news[category]:
-                        st.write(f"**Title:** {article['title']} [Read more]({article['link']})")
-                        st.write(f"**Published:** {article['published']}")
-                    st.markdown("---")
+                        st.markdown(f"**Title:** {article['title']} [Read more]({article['link']})", unsafe_allow_html=True)
+                        st.markdown(f"**Published:** {article['published']}")
+                    st.markdown("<hr>", unsafe_allow_html=True)
                 else:
                     st.info(f"No news available for the {category} category.")
+
+# Styling the sidebar
+st.sidebar.markdown("<h2 style='color: #FFD700;'>Options</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("This app classifies and displays news articles fetched from Google News based on selected topics.")
+
+# Adding a footer with styling
+st.markdown("<footer style='text-align: center; color: grey;'>Powered by Streamlit</footer>", unsafe_allow_html=True)
